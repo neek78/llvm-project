@@ -2315,7 +2315,7 @@ define nofpclass(inf norm sub zero) half @nan_result_demands_subnorm_rhs__dynami
   ret half %div
 }
 
-attributes #0 = { "denormal-fp-math"="preserve-sign,preserve-sign" }
-attributes #1 = { "denormal-fp-math"="dynamic,dynamic" }
-attributes #2 = { "denormal-fp-math"="ieee,preserve-sign" }
-attributes #3 = { "denormal-fp-math"="ieee,dynamic" }
+attributes #0 = { denormal_fpenv(preservesign,preservesign) }
+attributes #1 = { denormal_fpenv(dynamic,dynamic) }
+attributes #2 = { denormal_fpenv(ieee,preservesign) }
+attributes #3 = { denormal_fpenv(ieee,dynamic) }
