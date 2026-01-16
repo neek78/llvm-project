@@ -7135,6 +7135,10 @@ PreservedAnalyses LoopStrengthReducePass::run(Loop &L, LoopAnalysisManager &AM,
   if (!ReduceLoopStrength(&L, AM.getResult<IVUsersAnalysis>(L, AR), AR.SE,
                           AR.DT, AR.LI, AR.TTI, AR.AC, AR.TLI, AR.MSSA))
     return PreservedAnalyses::all();
+  
+  // TODO: Remove this once the LSR handles LCSSA preservation completely.
+  if (auto *OuterLoop = L.getOutermostLoop())
+    formLCSSARecursively(*OuterLoop, AR.DT, &AR.LI, &AR.SE);
 
   auto PA = getLoopPassPreservedAnalyses();
   if (AR.MSSA)
