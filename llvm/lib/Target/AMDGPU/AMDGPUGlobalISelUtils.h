@@ -9,6 +9,7 @@
 #ifndef LLVM_LIB_TARGET_AMDGPU_AMDGPUGLOBALISELUTILS_H
 #define LLVM_LIB_TARGET_AMDGPU_AMDGPUGLOBALISELUTILS_H
 
+#include "SIRegisterInfo.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/CodeGen/Register.h"
 #include <utility>
@@ -53,6 +54,11 @@ void buildReadAnyLane(MachineIRBuilder &B, Register SgprDst, Register VgprSrc,
                       const RegisterBankInfo &RBI);
 void buildReadFirstLane(MachineIRBuilder &B, Register SgprDst, Register VgprSrc,
                         const RegisterBankInfo &RBI);
+
+// LLT that matches size of some VGPR register class.
+bool isVgprBRC(LLT Ty, const SIRegisterInfo *TRI);
+// LLT that matches size of some SGPR register class.
+bool isSgprBRC(LLT Ty, const SIRegisterInfo *TRI);
 }
 }
 
