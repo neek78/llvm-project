@@ -16,6 +16,7 @@ WINDOWS_MAX_WORKERS_PER_POOL = 60
 def _ceilDiv(a, b):
     return (a + b - 1) // b
 
+
 class MaxFailuresError(Exception):
     pass
 
@@ -36,6 +37,7 @@ class Run(object):
         self.progress_callback = progress_callback
         self.max_failures = max_failures
         self.timeout = timeout
+        self._enable_resource_logging = True 
         assert workers > 0
 
     def execute(self):
@@ -73,6 +75,7 @@ class Run(object):
 
     def _execute(self, deadline):
         self._increase_process_limit()
+        self._log_resource_usage("at start of _execute()")
 
         semaphores = {
             k: multiprocessing.BoundedSemaphore(v)
@@ -115,6 +118,8 @@ class Run(object):
         tests_per_pool = _ceilDiv(len(self.tests), num_pools)
         async_results = []
 
+        self._log_resource_usage("before test distribution")
+
         for pool_idx, pool in enumerate(pools):
             start_idx = pool_idx * tests_per_pool
             end_idx = min(start_idx + tests_per_pool, len(self.tests))
@@ -123,6 +128,8 @@ class Run(object):
                     lit.worker.execute, args=[test], callback=self.progress_callback
                 )
                 async_results.append(ar)
+
+        self._log_resource_usage("after test distribution")
 
         # Close all pools
         for pool in pools:
@@ -145,6 +152,8 @@ class Run(object):
         idx = 0
         while len(async_results) > 0:
             try:
+                if idx % 1000 == 0:
+                    self._log_resource_usage("after %d tests" % idx)
                 ar = async_results.pop(0)
                 test = ar.get(timeout)
             except multiprocessing.TimeoutError:
@@ -196,3 +205,26 @@ class Run(object):
                 and platform.sys.platform != "cygwin"
             ):
                 self.lit_config.warning("Failed to raise process limit: %s" % ex)
+
+    def _log_resource_usage(self, description):
+        if not self._enable_resource_logging:
+            return
+        try:
+            import psutil
+        except ModuleNotFoundError:
+            self._enable_resource_logging = False
+            self.lit_config.warning(
+                "psutil module is not available - resource logging not possible"
+            )
+            return
+
+        process = psutil.Process()
+        mem = process.memory_info()
+        msg = "Resource Usage (%s) pid %d rss %d virt %d fds %d" % (
+            description,
+            os.getpid(),
+            mem.rss,
+            mem.vms,
+            process.num_fds(),
+        )
+        self.lit_config.note(msg)
